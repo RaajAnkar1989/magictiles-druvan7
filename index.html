@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#222222" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Druvan 7">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Druvan 7</title>
     <style>
         /* --- Basic Setup & Fonts --- */
@@ -433,7 +440,7 @@
             let score = 0;
             let combo = 0;
             let missStreak = 0;
-            let highScore = localStorage.getItem('druvan7HighScore') || 0;
+            let highScore = localStorage.getItem('Druvan7HighScore') || 0;
             let tiles = [];
             let gameLoopId;
             let tileSpeed = 2.5;
@@ -441,7 +448,7 @@
             let lastTime = 0;
             let currentLevel = 1;
             let playerData = {
-                image: 'https://placehold.co/150x150/FF69B4/FFFFFF?text=D7',
+                image: 'https://placehold.co/150x150/FF69B4/FFFFFF?text=H7',
                 songs: new Array(5).fill(null),
                 selectedSongIndex: null,
                 defaultSong: {
@@ -597,7 +604,7 @@
                 finalScoreDisplay.textContent = score;
                 if (score > highScore) {
                     highScore = score;
-                    localStorage.setItem('druvan7HighScore', highScore);
+                    localStorage.setItem('Druvan7HighScore', highScore);
                     highScoreDisplay.innerHTML = `NEW High Score: ${highScore} <span id="new-high-score-text">🎉</span>`;
                     celebrate();
                 } else {
@@ -806,6 +813,9 @@
             spawnBackgroundShapes();
             renderSongList();
         });
+        if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
+  }
     </script>
 </body>
 </html>
