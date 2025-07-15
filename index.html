@@ -242,6 +242,24 @@
             0% { transform: translate(0, 0) scale(1); opacity: 1; }
             100% { transform: var(--transform-end) scale(0); opacity: 0; }
         }
+        
+        /* Visual feedback for taps */
+        .tap-ripple {
+            position: absolute;
+            bottom: 10%;
+            width: 25%;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            opacity: 0;
+            transform: scale(0.5);
+            animation: ripple-out 0.3s ease-out;
+        }
+        
+        @keyframes ripple-out {
+            from { transform: scale(0.5); opacity: 1; }
+            to { transform: scale(1.2); opacity: 0; }
+        }
 
         #tap-zone {
             position: absolute;
@@ -346,7 +364,7 @@
             <div id="song-playlist"></div>
         </div>
 
-        <button id="start-game-btn" class="upload-button" style="display: none;">Start Game</button>
+        <button id="start-game-btn" class="upload-button">Start Game</button>
     </div>
 
     <!-- Game Screen -->
@@ -410,7 +428,12 @@
             let playerData = {
                 image: 'https://placehold.co/150x150/FF69B4/FFFFFF?text=D7',
                 songs: new Array(5).fill(null),
-                selectedSongIndex: null
+                selectedSongIndex: null,
+                // A default song created with a data URI to avoid external dependencies
+                defaultSong: {
+                    name: "Default Tune",
+                    url: "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                }
             };
 
             // --- Audio Context for Sound Effects ---
@@ -503,7 +526,6 @@
                         name: file.name,
                         url: URL.createObjectURL(file)
                     };
-                    // If no song is selected, select this one automatically
                     if (playerData.selectedSongIndex === null) {
                         selectSong(index);
                     }
@@ -513,8 +535,6 @@
             
             const selectSong = (index) => {
                 playerData.selectedSongIndex = index;
-                bgMusic.src = playerData.songs[index].url;
-                startGameBtn.style.display = 'inline-block';
                 renderSongList();
             };
 
@@ -527,9 +547,11 @@
             // --- Game Logic ---
             const startGame = () => {
                 initAudioContext();
-                if (playerData.selectedSongIndex === null) {
-                    alert("Please select a song to start the game!");
-                    return;
+                
+                if (playerData.selectedSongIndex !== null) {
+                    bgMusic.src = playerData.songs[playerData.selectedSongIndex].url;
+                } else {
+                    bgMusic.src = playerData.defaultSong.url;
                 }
                 
                 score = 0;
@@ -591,19 +613,30 @@
                 }
             };
 
-            const handleTap = (e) => {
-                const lane = e.target.dataset.lane;
-                if (lane === undefined) return;
+            const processInput = (x, y) => {
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                if (x < gameAreaRect.left || x > gameAreaRect.right || y < gameAreaRect.top || y > gameAreaRect.bottom) {
+                    return;
+                }
+
+                const laneWidth = gameAreaRect.width / 4;
+                const lane = Math.floor((x - gameAreaRect.left) / laneWidth);
+
+                const ripple = document.createElement('div');
+                ripple.className = 'tap-ripple';
+                ripple.style.left = `${lane * 25}%`;
+                gameArea.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 300);
 
                 const tapZoneBottom = gameArea.clientHeight;
-                const tapZoneTop = tapZoneBottom * 0.8;
+                const tapZoneTop = tapZoneBottom * 0.75;
                 
                 let tappedTile = null;
                 let tappedTileIndex = -1;
 
                 for (let i = 0; i < tiles.length; i++) {
                     const tile = tiles[i];
-                    if (tile.lane == lane) {
+                    if (tile.lane === lane) {
                         const tileBottom = tile.position + 150;
                         if (tileBottom > tapZoneTop && tile.position < tapZoneBottom) {
                             tappedTile = tile;
@@ -700,14 +733,13 @@
                 showScreen(welcomeScreen);
             });
             
-            gameArea.addEventListener('click', handleTap);
+            gameArea.addEventListener('mousedown', (e) => {
+                processInput(e.clientX, e.clientY);
+            });
             gameArea.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
-                const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (target && target.classList.contains('lane')) {
-                    handleTap({ target });
-                }
+                processInput(touch.clientX, touch.clientY);
             }, { passive: false });
 
             // --- Initial Setup ---
